@@ -1,0 +1,323 @@
+﻿<html>
+  <head>
+  <meta charset="utf-8">
+  <title>WHO IS THE MVP</title>
+	<link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css">
+  <script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+  <script type="text/javascript" src="lib/bootstrap/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="lib/radarChart/radarChart.js"></script>
+    <style>
+      rect.bordered {
+        stroke: #A1A1A1;
+        stroke-width:1px;  
+      }
+      text.mono {
+        font-size: 9pt;
+        font-family: Consolas, courier;
+        fill: #000;
+      }
+    </style>
+  </head>
+  
+  <body>
+    <!--bootstrap 栅格式布局-->
+    <nav class="navbar navbar-inverse" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<strong class="navbar-brand">WHO IS THE MVP</strong>
+					<p class="mSubTitle" style="color:white">Regular Season（2016-2017）</p>
+				</div>
+			</div>
+		</nav>
+<div  class="container-fluid/">
+    <div class="row" >
+        <div id="heatMap" class="col-xs-12 col-lg-6"></div>
+        <div  class="col-xs-12 col-lg-6">         
+                <div id="playerName" class="row" ></div>
+                <div class="radarChart" ></div>
+                <div id="radarChart_note" class="row" ></div>                
+        </div> 
+    </div>
+</div>
+    <script type="text/javascript">
+    var array_data = [];
+      // 一句话定义了众多变量， 定义了块儿的位置、宽高、小格子的边长等等与布局有关的变量
+      var margin = { top: 50, right: 0, bottom: 100, left: 150 },
+          width = 950 - margin.left - margin.right,        // 所有格子区域的宽度，即Heatmap的宽度
+          height = 850 - margin.top - margin.bottom,
+          gridSize = Math.floor(width / 36),    // 求地板，即去掉小数部分，调整方格大小
+          legendElementWidth = gridSize * 2,    // 底下标尺的长度，是格子边长的两倍
+          buckets = 9,        // 一共9种颜色级别
+          colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"], 
+          indexs = ["GP","MIN","PTS","FGM","FGA","FG%","3PM","3PA","3P%","FTM","FTA","FT%","ORB","DRB","REB","AST","STL","BLK","TOV","EFF"];
+      
+          // 函数，读取 CSV 文件
+          d3.csv("player.csv", //function(d) {}, function(error, data) {} );
+            
+            function(error, data) {
+              // colorScale：颜色级别
+              var colorScale = d3.scale.quantile()        // 按分位数取值，可使每个区域内元素个数相等
+                  .domain([0, buckets - 1, 100])  // 定义域
+                  // domain([0, n, 数据的最大值]);
+                  .range(colors);    // 值域：是颜色数组，函数的返回值是代表某种颜色的字符串
+              console.log(data);
+
+              // 设置chart，svg
+              var svg = d3.select("#heatMap").append("svg") // 选择“chart”（就是div），加入一个svg，设置属性跟div一样大
+                  .attr("width", width + margin.left + margin.right-350)
+                  .attr("height", height + margin.top + margin.bottom)
+                  .style("text-anchor", "float:left")
+                  .append("g")    // 在svg内加入一个g（group组），并设置元素g的显示位置
+                  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                
+              // 编辑姓名行
+              var nameLabels = svg.selectAll(".nameLabel")
+                  .data(data)
+                  .enter()    // 为data中每一项创建一个".dayLabel"
+                  .append("text")    // 为days中每一项创建一的".dayLabel"添加文本，下面全是设置文本的属性
+                    .text(function (d, i) { return data[i].PLAYER; })
+                    .attr("x", 0)
+                    .attr("y", function (d, i) { return i * gridSize; })
+                    .style("text-anchor", "end")
+                    .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+                    .attr("class", function (d, i) 
+                            { return ("nameLabel mono axis"); }
+                        );
+                    
+              console.log(nameLabels);
+
+              // 编辑指标项行
+              var indexLabels = svg.selectAll(".indexLabel")
+                  .data(indexs)
+                  .enter().append("text")
+                    .text(function(d) { return d; })
+                    .attr("x", function(d, i) { return i * gridSize; })
+                    .attr("y", 0)
+                    .style("text-anchor", "middle")
+                    .attr("transform", "translate(" + gridSize / 2 + ", -6)")
+                    .attr("class", function(d, i) { 
+                            return ( "indexLabel mono axis"); }
+                         );
+  
+                // 画出格子，暂不涂色，color[0]
+                for (var i = 0; i < 30; i++){
+                    array_data[i*20] = data[i].GP;
+                    array_data[i*20+1] = data[i].MIN;
+                    array_data[i*20+2] = data[i].PTS;
+                    array_data[i*20+3] = data[i].FGM;
+                    array_data[i*20+4] = data[i].FGA;
+                    array_data[i*20+5] = data[i].FGP;
+                    array_data[i*20+6] = data[i].P3PM;
+                    array_data[i*20+7] = data[i].P3PA;
+                    array_data[i*20+8] = data[i].P3PP;
+                    array_data[i*20+9] = data[i].FTM;
+                    array_data[i*20+10] = data[i].FTA;
+                    array_data[i*20+11] = data[i].FTP;
+                    array_data[i*20+12] = data[i].OREB;
+                    array_data[i*20+13] = data[i].DREB;
+                    array_data[i*20+14] = data[i].REB;
+                    array_data[i*20+15] = data[i].AST;
+                    array_data[i*20+16] = data[i].STL;
+		            array_data[i*20+17] = data[i].BLK;
+		            array_data[i*20+18] = data[i].TOV;
+		            array_data[i*20+19] = data[i].EFF;
+              }
+              console.log(array_data);
+              
+              draw_radarChart(0);//初始化输出0号雷达图
+
+             var heatMap = svg.selectAll(".score")
+                  .data(array_data)
+                  .enter()        // 为data中每一项创建一个".score"
+                  .append("rect")
+                  .attr("x", function(d, i){ return (i % 20)*gridSize;})
+                  .attr("y", function(d, i){ return parseInt(i / 20)*gridSize;})
+                  .attr("rx", 6)
+                  .attr("ry", 6)
+                  .attr("class", "heatMap bordered")
+                  .attr("width", gridSize)
+                  .attr("height", gridSize)
+                  .style("fill", "#FFFFFF");
+                
+              // duration(1000) 在1000ns也就是1s内将格子图上色
+              heatMap.transition().duration(1000)
+                  .style("fill", function(d) { return colorScale(d); });
+                
+              // 鼠标停留显示value
+              heatMap.append("title").text(function(d) { return d; });
+             // 鼠标在某个rect上面，其颜色变化以示被指着了
+              heatMap.on("mouseover",function (d,i) { 
+						$(this).css("stroke-width",3)
+								.css("stroke","black");
+                        d3.select(this)
+							.style("opacity", 0.8);
+                            });
+             //鼠标移开恢复原样
+              heatMap.on("mouseout",function (d,i) { 
+						$(this).css("stroke","#A1A1A1")
+                                 .css("stroke-width",1);                              
+                        d3.select(this)
+							.style("opacity", 1);
+                            });       
+
+             heatMap.on("click",function (d,i) { 
+                        draw_radarChart(parseInt(i/20));//i除以20向下取整，确定行数
+                            }); 
+
+              // legend 图例
+              var legend = svg.selectAll(".legend")
+                  .data([0].concat(colorScale.quantiles()), function(d) { return d; })   
+                  .enter().append("g")
+                  .attr("class", "legend");
+    
+              legend.append("rect")
+                .attr("x", function(d, i) { return legendElementWidth * i; })
+                .attr("y", height)
+                .attr("width", legendElementWidth)
+                .attr("height", gridSize / 2)
+                .style("fill", function(d, i) { return colors[i]; });
+    
+              legend.append("text")
+                .attr("class", "mono")
+                .text(function(d) { return ">= "+Math.round(d); })
+                .attr("x", function(d, i) { return legendElementWidth * i; })
+                .attr("y", height + gridSize);
+          });         
+    </script>
+
+<!--***************************RadarChart*******************************************-->
+<script>    
+function draw_radarChart(k)//根据第k个player的数据画雷达图，修改的Nadieh Bremer的demo
+{  
+      /* Radar chart design created by Nadieh Bremer - VisualCinnamon.com */
+			////////////////////////////////////////////////////////////// 
+			//////////////////////// Set-Up ////////////////////////////// 
+			////////////////////////////////////////////////////////////// 
+
+			var radar_margin = {top:0, right: 100, bottom: 0, left: 100},
+				radar_width = Math.min(500, window.innerWidth - 10) - margin.left - margin.right,
+				radar_height = Math.min(width, window.innerHeight - margin.top - margin.bottom - 20);
+			
+            
+			////////////////////////////////////////////////////////////// 
+			////////////////////////// Data ////////////////////////////// 
+			////////////////////////////////////////////////////////////// 
+			d3.csv("player_normalizated.csv",function(error,csvdata){  
+   			 if(error){ console.log(error); } 
+            
+            var csv_data =[];
+            var axisLable =["PTS","FGP","P3PP","FTP","REB","AST","STL","BLK","TOV","EFF"];   
+    		console.log(csvdata);
+            console.log(k);
+            for(i=0;i<2;i++)
+            {
+                csv_data[i] = [
+						{axis:"PTS",value:0},
+						{axis:"FGP",value:0},
+						{axis:"P3PP",value:0},
+						{axis:"FTP",value:0},
+						{axis:"REB",value:0},
+						{axis:"AST",value:0},
+						{axis:"STL",value:0},
+                        {axis:"BLK",value:0},
+						{axis:"TOV",value:0},
+						{axis:"EFF",value:0}			
+					  ];	
+            }
+						for (j=0;j<10;j++)
+					{
+						csv_data[0][j].value = csvdata[30][axisLable[j]];//Average
+                        csv_data[1][j].value = csvdata[k][axisLable[j]];
+					}    
+			//console.log(csv_data); 
+			////////////////////////////////////////////////////////////// 
+			//////////////////// Draw the Chart ////////////////////////// 
+			////////////////////////////////////////////////////////////// 
+			var color = d3.scale.ordinal()
+				.range(["#EDC951","#CC333F","#00A0B0"]);
+				
+			var radarChartOptions = {
+			  w: radar_width,
+			  h: radar_height,
+			  margin: radar_margin,
+			  maxValue: 1,
+			  levels: 5,
+			  roundStrokes: true,
+			  color: color
+			};
+
+            for(i=0;i<30;i++)
+            {
+                    d3.select("#playerName"+i).remove();
+            }//清除之前的svg，实现更新
+
+
+            var playerName = d3.select("#playerName")
+                  .append("svg") // 选择“chart”（就是div），加入一个svg，设置属性跟div一样大
+                  .attr("id", "playerName"+k)
+                  .attr("width", 500)
+                  .attr("height",100)
+                  .style("text-anchor", "float:left")
+                  .append("g")    // 在svg内加入一个g（group组），并设置元素g的显示位置
+                  .attr("transform", "translate( 180 ," + margin.top + ")");
+                  
+            var playerName =  playerName
+                  .append("g")
+                  .data(csvdata)
+                  .append("text")    
+                  .text( csvdata[k].PLAYER)
+                  .attr("font-size",30)
+                  .style("fill","black");
+                              
+            console.log(playerName);
+			//Call function to draw the Radar chart
+			 RadarChart(".radarChart", csv_data, radarChartOptions);
+
+			 });//d3.csv END
+}//function draw_radarChart(k) END
+</script>
+<!--***************************legend of radarChart*******************************************-->
+<script>
+            var radarChart_note = d3.select("#radarChart_note")
+                  .append("svg") 
+                  .attr("width", 500)
+                  .attr("height",100)
+                  .attr("class","radarChart_note")
+                  
+            radarChart_note.append("g")
+                  .attr("class","radar_legend")
+                  .append("rect")
+                  .attr("x", 0)
+                  .attr("y", 0)
+                  .attr("width", 10)
+                  .attr("height",10)
+                  .style("fill", "#CC333F")
+                  .attr("transform", "translate( 180 ," + margin.top + ")");
+                  
+            radarChart_note.append("g")
+                  .append("text")    
+                  .text("Player")
+                  .attr("font-size",20)
+                  .style("fill","#CC333F")
+                  .attr("transform", "translate( 200 ,63)");
+
+            radarChart_note.append("g")
+                  .attr("class","radar_legend")
+                  .append("rect")
+                  .attr("x", 0)
+                  .attr("y", 0)
+                  .attr("width", 10)
+                  .attr("height",10)
+                  .style("fill", "#EDC951")
+                  .attr("transform", "translate( 300 ," + margin.top + ")");
+
+             radarChart_note.append("g")
+                  .append("text")    
+                  .text("Average")
+                  .attr("font-size",20)
+                  .style("fill","#EDC951")
+                  .attr("transform", "translate( 320 ,63)");
+</script>
+  </body>
+</html>
